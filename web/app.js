@@ -2862,11 +2862,47 @@ function webViewerKeyDown(evt) {
     }
   }
 
+  // Smooth scrolling does not work properly with the current method
+  const SCROLL_BEHAVIOUR = "auto";
+  const SCROLL_STEP = 100;
+  const viewerContainer = document.querySelector("#viewerContainer");
+
   // No control key pressed at all.
   if (cmd === 0) {
     let turnPage = 0,
       turnOnlyIfPageFit = false;
     switch (evt.keyCode) {
+      case 80: // 'p'
+        window.history.back();
+        break;
+      case 72: // 'h'
+        viewerContainer.scrollBy({
+          left: -SCROLL_STEP,
+          top: 0,
+          behavior: SCROLL_BEHAVIOUR,
+        });
+        break;
+      case 74: // 'j'
+        viewerContainer.scrollBy({
+          left: 0,
+          top: SCROLL_STEP,
+          behavior: SCROLL_BEHAVIOUR,
+        });
+        break;
+      case 75: // 'k'
+        viewerContainer.scrollBy({
+          left: 0,
+          top: -SCROLL_STEP,
+          behavior: SCROLL_BEHAVIOUR,
+        });
+        break;
+      case 76: // 'l'
+        viewerContainer.scrollBy({
+          left: SCROLL_STEP,
+          top: 0,
+          behavior: SCROLL_BEHAVIOUR,
+        });
+        break;
       case 38: // up arrow
       case 33: // pg up
         // vertical scrolling using arrow/pg keys
@@ -2890,8 +2926,7 @@ function webViewerKeyDown(evt) {
           turnOnlyIfPageFit = true;
         }
       /* falls through */
-      case 75: // 'k'
-      case 80: // 'p'
+      case 85: // 'u'
         turnPage = -1;
         break;
       case 27: // esc key
@@ -2928,7 +2963,7 @@ function webViewerKeyDown(evt) {
           turnOnlyIfPageFit = true;
         }
       /* falls through */
-      case 74: // 'j'
+      case 68: // 'd'
       case 78: // 'n'
         turnPage = 1;
         break;
@@ -2953,9 +2988,6 @@ function webViewerKeyDown(evt) {
 
       case 83: // 's'
         PDFViewerApplication.pdfCursorTools.switchTool(CursorTool.SELECT);
-        break;
-      case 72: // 'h'
-        PDFViewerApplication.pdfCursorTools.switchTool(CursorTool.HAND);
         break;
 
       case 82: // 'r'
