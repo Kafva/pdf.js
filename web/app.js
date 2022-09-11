@@ -2356,18 +2356,20 @@ function webViewerSpreadModeChanged(evt) {
   }
 }
 /**
- * Automatically use a 2-page spread if the viewport has a width above 1500
+ * Automatically use a 2-page spread if the viewport has a width above X
  * and is not a presentation. We consider any
  * document with a (width/height) quotient close to or below 1
  * (i.e. a lying rectange form) a presentation
  */
 function updateSpreads() {
+  const widthLimitPx = 1700;
   const { pdfDocument, pdfViewer } = PDFViewerApplication;
   pdfDocument.getPage(1).then(pdfPage => {
     const pageSize = getPageSizeInches(pdfPage, 0);
     if (
       pageSize.width / pageSize.height <= 1 &&
-      (window.innerWidth > 1500 || document.documentElement.clientWidth > 1500)
+      (window.innerWidth > widthLimitPx ||
+        document.documentElement.clientWidth > widthLimitPx)
     ) {
       if (pdfViewer._spreadMode !== SpreadMode.ODD) {
         console.log("[!]: Switching to 2-spread mode");
