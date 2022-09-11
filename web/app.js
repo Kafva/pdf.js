@@ -147,6 +147,7 @@ class DefaultExternalServices {
 }
 
 const PDFViewerApplication = {
+  urlFingerprint: null,
   initialBookmark: document.location.hash.substring(1),
   _initializedCapability: createPromiseCapability(),
   appConfig: null,
@@ -907,6 +908,7 @@ const PDFViewerApplication = {
 
     const loadingTask = getDocument(parameters);
     this.pdfLoadingTask = loadingTask;
+    this.urlFingerprint = btoa(parameters.url);
 
     loadingTask.onPassword = (updateCallback, reason) => {
       if (this.isViewerEmbedded) {
@@ -1154,7 +1156,7 @@ const PDFViewerApplication = {
     pdfThumbnailViewer.setDocument(pdfDocument);
 
     const storedPromise = (this.store = new ViewHistory(
-      pdfDocument.fingerprints[0]
+      this.urlFingerprint
     ))
       .getMultiple({
         page: null,
@@ -1186,7 +1188,7 @@ const PDFViewerApplication = {
           const viewOnLoad = AppOptions.get("viewOnLoad");
 
           this._initializePdfHistory({
-            fingerprint: pdfDocument.fingerprints[0],
+            fingerprint: this.urlFingerprint,
             viewOnLoad,
             initialDest: openAction?.dest,
           });
@@ -1430,7 +1432,7 @@ const PDFViewerApplication = {
 
     // Provides some basic debug information
     console.log(
-      `PDF ${pdfDocument.fingerprints[0]} [${info.PDFFormatVersion} ` +
+      `PDF ${this.urlFingerprint} [${info.PDFFormatVersion} ` +
         `${(info.Producer || "-").trim()} / ${(info.Creator || "-").trim()}] ` +
         `(PDF.js: ${version || "?"} [${build || "?"}])`
     );
@@ -1534,7 +1536,7 @@ const PDFViewerApplication = {
       return;
     }
     this.pdfHistory.initialize({
-      fingerprint,
+      fingerprint: fingerprint,
       resetHistory: viewOnLoad === ViewOnLoad.INITIAL,
       updateUrl: AppOptions.get("historyUpdateUrl"),
     });
