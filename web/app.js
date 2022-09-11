@@ -2873,6 +2873,9 @@ function webViewerKeyDown(evt) {
         }
         turnPage = -1;
         break;
+      case 71: // 'g'
+        webViewerFirstPage();
+        break;
       case 8: // backspace
         if (!isViewerInPresentationMode) {
           turnOnlyIfPageFit = true;
@@ -2991,6 +2994,9 @@ function webViewerKeyDown(evt) {
         handled = true;
         break;
 
+      case 71: // 'G'
+        webViewerLastPage();
+        break;
       case 82: // 'r'
         PDFViewerApplication.rotatePages(-90);
         break;
