@@ -2048,6 +2048,12 @@ if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
         // Hosted or local viewer, allow for any file locations
         return;
       }
+      // In the generic build for firefox the origin is 'null' and the
+      // viewerOrigin is the extension ID: moz-extension://d4fb6fb9-33b5-41b8-a7c2-bc96fda819a9
+      // which does not work with the next check
+      if (viewerOrigin.match(/moz-extension:\/\//) !== null) {
+        return;
+      }
       const fileOrigin = new URL(file, window.location.href).origin;
       // Removing of the following line will not guarantee that the viewer will
       // start accepting URLs from foreign origin -- CORS headers on the remote
@@ -2219,6 +2225,15 @@ function webViewerPageRendered({ pageNumber, error }) {
       PDFViewerApplication._otherError(msg, error);
     });
   }
+
+  // Instead of waiting for a resize, attempt to update the spread
+  // setting once the second page has been loaded
+  if (pageNumber === 2) {
+    updateSpreads();
+  }
+
+  // It is a good time to report stream and font types.
+  PDFViewerApplication._reportDocumentStatsTelemetry();
 }
 
 function webViewerPageMode({ mode }) {
@@ -2346,7 +2361,7 @@ function webViewerSpreadModeChanged(evt) {
  * document with a (width/height) quotient close to or below 1
  * (i.e. a lying rectange form) a presentation
  */
-function changeSpreadsOnResize(evt) {
+function updateSpreads() {
   const { pdfDocument, pdfViewer } = PDFViewerApplication;
   pdfDocument.getPage(1).then(pdfPage => {
     const pageSize = getPageSizeInches(pdfPage, 0);
@@ -2390,7 +2405,7 @@ function webViewerResize() {
     pdfViewer.currentScaleValue = currentScaleValue;
   }
   pdfViewer.update();
-  changeSpreadsOnResize();
+  updateSpreads();
 }
 
 function webViewerHashchange(evt) {
