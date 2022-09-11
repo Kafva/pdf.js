@@ -256,27 +256,6 @@ if (
   document.readyState === "complete"
 ) {
   webViewerLoad();
-
-
-
-  // Test pdfs:
-  //  http://localhost:8888/web/viewer.html?file=../test/pdfs/main.pdf
-  // getDocument() from pdjs-lib is the function which sets the fingerprint
-  // The fingerprint changes when the file content changes and we must therefore
-  // override this to only depend on the file path to retain our position
-  // when we recompile documents
-
-  // Auto-click for current-view button to retain current position in pdf
-  // We can't run another extension inside of pdf.js to get this effect
-  // and must therefore update the fork manually if we want upstream changes
-  // https://docs.github.com/en/github/collaborating-with-pull-requests/working-with-forks/syncing-a-fork
-  setInterval( () => {
-    document.querySelector("#viewBookmark")?.click();
-    let locationArgs = document.location.href.split('#');
-    console.log(`Current bookmark: ${locationArgs.length >= 2 ? locationArgs[1] : 'None'}`);
-  }, 2500);
-  console.log("[!]: Initialised current view auto-clicker");
-
 } else {
   document.addEventListener("DOMContentLoaded", webViewerLoad, true);
 }

@@ -20,6 +20,7 @@ import {
   AutoPrintRegExp,
   DEFAULT_SCALE_VALUE,
   getActiveOrFocusedElement,
+  getPageSizeInches,
   isValidRotation,
   isValidScrollMode,
   isValidSpreadMode,
@@ -1155,9 +1156,7 @@ const PDFViewerApplication = {
     const pdfThumbnailViewer = this.pdfThumbnailViewer;
     pdfThumbnailViewer.setDocument(pdfDocument);
 
-    const storedPromise = (this.store = new ViewHistory(
-      this.urlFingerprint
-    ))
+    const storedPromise = (this.store = new ViewHistory(this.urlFingerprint))
       .getMultiple({
         page: null,
         zoom: DEFAULT_SCALE_VALUE,
@@ -1434,7 +1433,7 @@ const PDFViewerApplication = {
     console.log(
       `PDF ${this.urlFingerprint} [${info.PDFFormatVersion} ` +
         `${(info.Producer || "-").trim()} / ${(info.Creator || "-").trim()}] ` +
-        `(PDF.js: ${version || "?"} [${build || "?"}])`
+        `(PDF.js: ${version || "-"}-kafva)`
     );
     let pdfTitle = info.Title;
 
@@ -1536,7 +1535,7 @@ const PDFViewerApplication = {
       return;
     }
     this.pdfHistory.initialize({
-      fingerprint: fingerprint,
+      fingerprint,
       resetHistory: viewOnLoad === ViewOnLoad.INITIAL,
       updateUrl: AppOptions.get("historyUpdateUrl"),
     });
@@ -2341,6 +2340,33 @@ function webViewerSpreadModeChanged(evt) {
     });
   }
 }
+/**
+ * Automatically use a 2-page spread if the viewport has a width above 1500
+ * and is not a presentation. We consider any
+ * document with a (width/height) quotient close to or below 1
+ * (i.e. a lying rectange form) a presentation
+ */
+function changeSpreadsOnResize(evt) {
+  const { pdfDocument, pdfViewer } = PDFViewerApplication;
+  pdfDocument.getPage(1).then(pdfPage => {
+    const pageSize = getPageSizeInches(pdfPage, 0);
+    if (
+      pageSize.width / pageSize.height <= 1 &&
+      (window.innerWidth > 1500 || document.documentElement.clientWidth > 1500)
+    ) {
+      if (pdfViewer._spreadMode !== SpreadMode.ODD) {
+        console.log("[!]: Switching to 2-spread mode");
+        pdfViewer.spreadMode = SpreadMode.ODD;
+      }
+    } else {
+      if (pdfViewer._spreadMode !== SpreadMode.NONE) {
+        console.log("[!]: Switching to single-spread mode");
+        pdfViewer.spreadMode = SpreadMode.NONE;
+      }
+    }
+    pdfViewer.update();
+  });
+}
 
 function webViewerResize() {
   const { pdfDocument, pdfViewer, pdfRenderingQueue } = PDFViewerApplication;
@@ -2364,6 +2390,7 @@ function webViewerResize() {
     pdfViewer.currentScaleValue = currentScaleValue;
   }
   pdfViewer.update();
+  changeSpreadsOnResize();
 }
 
 function webViewerHashchange(evt) {
