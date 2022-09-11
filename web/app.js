@@ -2867,10 +2867,11 @@ function webViewerKeyDown(evt) {
   const SCROLL_STEP = 100;
   const viewerContainer = document.querySelector("#viewerContainer");
 
+  let turnPage = 0,
+    turnOnlyIfPageFit = false;
+
   // No control key pressed at all.
   if (cmd === 0) {
-    let turnPage = 0,
-      turnOnlyIfPageFit = false;
     switch (evt.keyCode) {
       case 80: // 'p'
         window.history.back();
@@ -2998,18 +2999,6 @@ function webViewerKeyDown(evt) {
         PDFViewerApplication.pdfSidebar.toggle();
         break;
     }
-
-    if (
-      turnPage !== 0 &&
-      (!turnOnlyIfPageFit || pdfViewer.currentScaleValue === "page-fit")
-    ) {
-      if (turnPage > 0) {
-        pdfViewer.nextPage();
-      } else {
-        pdfViewer.previousPage();
-      }
-      handled = true;
-    }
   }
 
   // shift-key
@@ -3027,7 +3016,12 @@ function webViewerKeyDown(evt) {
 
         handled = true;
         break;
-
+      case 74: // j
+        turnPage = 1;
+        break;
+      case 75: // k
+        turnPage = -1;
+        break;
       case 71: // 'G'
         webViewerLastPage();
         break;
@@ -3035,6 +3029,18 @@ function webViewerKeyDown(evt) {
         PDFViewerApplication.rotatePages(-90);
         break;
     }
+  }
+
+  if (
+    turnPage !== 0 &&
+    (!turnOnlyIfPageFit || pdfViewer.currentScaleValue === "page-fit")
+  ) {
+    if (turnPage > 0) {
+      pdfViewer.nextPage();
+    } else {
+      pdfViewer.previousPage();
+    }
+    handled = true;
   }
 
   if (!handled && !isViewerInPresentationMode) {
