@@ -3028,6 +3028,12 @@ function webViewerKeyDown(evt) {
       case 82: // 'r'
         PDFViewerApplication.rotatePages(-90);
         break;
+      case 55: // 7 ('/' with shift)
+        if (!PDFViewerApplication.supportsIntegratedFind) {
+          PDFViewerApplication.findBar.open();
+          handled = true;
+        }
+        break;
     }
   }
 
