@@ -141,7 +141,7 @@ WebServer.prototype = {
     }
 
     //===================== ViPDF ============================================//
-    // Fetch remote resource through redirects.
+    // Make a GET request and follow redirects
     const getFollow = (url, redirectCount, cb) => {
       const fetcher = url.startsWith("https") ? https : http
 
@@ -198,35 +198,77 @@ WebServer.prototype = {
         res.end("Bad request", "utf8");
         return;
       }
-      const downloadUrl = params['file']
+      const fileUrl = params['file']
 
-      getFollow(downloadUrl, 0, (data) => {
-
-        const outfile = getOutputFile()
-        console.log(
-          `fetched ${downloadUrl} -> ${outfile} (${data.length} bytes)`
-        )
-
-        if (data.length == 0 || data.toString('ascii', 0, 4) != "%PDF") {
-            res.writeHead(500);
-            const err = data.toString('utf8', 0, 256)
-            console.error("error response", err)
-            res.end("Non PDF response: "+downloadUrl);
+      if (fileUrl.startsWith("file:///") || fileUrl.startsWith("/")) {
+        // For local resources we create symlinks 
+        // (this allows for LaTeX documents that are rebuilt
+        // to be updated on page refresh without a new request to /vi)
+        const fsPath = fileUrl.replace(/^file:\/\//, "")
+        if (!fs.existsSync(fsPath)) {
+            res.writeHead(400);
+            res.end("Local resource does not exist: "+fsPath);
+        } else if (fs.lstatSync(fsPath).isSymbolicLink()) {
+            res.writeHead(400);
+            res.end("Local resource is a symlink: "+fsPath);
         } else {
-          fs.writeFile(outfile, data, err => {
-            if (err) {
-              console.error(err);
+          const linkPath = `${this.dlRoot}/${path.basename(fsPath)}`
+          try {
+            fs.unlinkSync(linkPath)
+          } catch (e) {
+            if (e.code != "ENOENT") {
+              console.error(e)
               res.writeHead(500);
               res.end();
+              return
+            }
+          }
+
+          // Create a '.pdfs/<name> -> file:///.../<name>' symlink
+          fs.symlink(fsPath, linkPath, (e) => {
+            if (e) {
+              console.error(e) 
+              process.exit(-1)
             } else {
-              res.writeHead(302, { // XXX Assumes: `dlRoot == /tmp/.pdfs`
-                Location: "/web/viewer.html?file=" + outfile.replace("/tmp", "") 
+              res.writeHead(302, {
+                Location: "/web/viewer.html?file=" + linkPath.replace("/tmp", "") 
               });
               res.end();
             }
-          });
+          })
         }
-      })
+      } else if (fileUrl.match(/^http?s\|ftp/) != null) {
+        // For remote resources, fetch the PDF to /tmp
+        getFollow(fileUrl, 0, (data) => {
+          const outfile = getOutputFile()
+          console.log(
+            `fetched ${fileUrl} -> ${outfile} (${data.length} bytes)`
+          )
+          if (data.length == 0 || data.toString('ascii', 0, 4) != "%PDF") {
+              res.writeHead(400);
+              const err = data.toString('utf8', 0, 256)
+              console.error("error response", err)
+              res.end("Non PDF response: "+fileUrl);
+          } else {
+            fs.writeFile(outfile, data, err => {
+              if (err) {
+                console.error(err);
+                res.writeHead(500);
+                res.end("Error saving local copy of document");
+              } else {
+                res.writeHead(302, { // XXX Assumes: `dlRoot == /tmp/.pdfs`
+                  Location: "/web/viewer.html?file=" + outfile.replace("/tmp", "") 
+                });
+                res.end();
+              }
+            });
+          }
+        })
+      } else {
+        res.writeHead(400);
+        res.end("Unsupported URI scheme");
+      }
+
 
       return;
     }

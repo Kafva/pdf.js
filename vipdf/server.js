@@ -3,8 +3,8 @@
 // Test with the PDF from this issue:
 //
 //
-//  TODO handle file:///
-//
+//  Local resource:
+//    http://localhost:9449/vi?file=/Users/jonas/Documents/XeT/foe/Monster/main.pdf
 //  Basic:
 //    http://localhost:9449/vi?file=http://www.kinsellaresearch.com/new/faces.pdf
 //  Redirect (& autoprint script):
