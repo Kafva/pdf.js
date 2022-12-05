@@ -142,25 +142,30 @@ WebServer.prototype = {
 
     //===================== ViPDF ============================================//
     // Fetch remote resource through redirects.
-    const getFollow = (url, cb) => {
-      const body = [];
+    const getFollow = (url, redirectCount, cb) => {
       const fetcher = url.startsWith("https") ? https : http
 
       fetcher.get(url, (res) => {
-        if (res.statusCode === 301 || res.statusCode === 302) {
-          return fetcher.get(res.headers.location, cb)
+        console.log(`${res.statusCode} Fetching data from ${url}`)
+
+        if (300 <= res.statusCode && res.statusCode < 400) {
+
+          if (redirectCount >= 5) {
+            cb("Too many redirects");
+          } else {
+            getFollow(res.headers.location, ++redirectCount, cb)
+          }
+        } else {
+          const body = [];
+
+          res.on("data", (chunk) => {
+            body.push(chunk);
+          }).on("end", () => {
+            cb(Buffer.concat(body));
+          });
         }
-
-        res.on("data", (chunk) => {
-          body.push(chunk);
-        });
-
-        res.on("end", () => {
-          cb(Buffer.concat(body));
-        });
       });
     }
-
 
     const getOutputFile = () => {
       let i = 0
@@ -195,16 +200,18 @@ WebServer.prototype = {
       }
       const downloadUrl = params['file']
 
-      getFollow(downloadUrl, (data) => {
+      getFollow(downloadUrl, 0, (data) => {
+
         const outfile = getOutputFile()
         console.log(
           `fetched ${downloadUrl} -> ${outfile} (${data.length} bytes)`
         )
 
-        if (data.length == 0 || !data.toString('utf8', 1, 4) != "PDF") {
+        if (data.length == 0 || data.toString('ascii', 0, 4) != "%PDF") {
             res.writeHead(500);
-            console.error("error response", data.toString('utf8'))
-            res.end("Failed to fetch remote resource");
+            const err = data.toString('utf8', 0, 256)
+            console.error("error response", err)
+            res.end("Non PDF response: "+downloadUrl);
         } else {
           fs.writeFile(outfile, data, err => {
             if (err) {
