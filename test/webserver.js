@@ -17,6 +17,9 @@
 
 "use strict";
 
+
+const qs = require("node:querystring")
+const https = require("https");
 var http = require("http");
 var path = require("path");
 var fs = require("fs");
@@ -41,6 +44,7 @@ var defaultMimeType = "application/octet-stream";
 
 function WebServer() {
   this.root = ".";
+  this.dlRoot = "/tmp/.pdfs"
   this.host = "localhost";
   this.port = 0;
   this.server = null;
@@ -54,6 +58,20 @@ function WebServer() {
 }
 WebServer.prototype = {
   start(callback) {
+    // Create download folder: /tmp/.pdfs
+    fs.mkdir(this.dlRoot, (e) => {
+      if (e && e.code != "EEXIST") {
+        console.error(e);
+        process.exit(-1)
+      }
+    })
+    // Create a '.pdfs -> /tmp/.pdfs' symlink
+    fs.symlink(this.dlRoot, path.basename(this.dlRoot), (e) => {
+      if (e && e.code != "EEXIST") {
+        console.error(e) 
+        process.exit(-1)
+      }
+    })
     this._ensureNonZeroPort();
     this.server = http.createServer(this._handler.bind(this));
     this.server.listen(this.port, this.host, callback);
@@ -121,6 +139,91 @@ WebServer.prototype = {
       );
       return;
     }
+
+    //===================== ViPDF ============================================//
+    // Fetch remote resource through redirects.
+    const getFollow = (url, cb) => {
+      const body = [];
+      const fetcher = url.startsWith("https") ? https : http
+
+      fetcher.get(url, (res) => {
+        if (res.statusCode === 301 || res.statusCode === 302) {
+          return fetcher.get(res.headers.location, cb)
+        }
+
+        res.on("data", (chunk) => {
+          body.push(chunk);
+        });
+
+        res.on("end", () => {
+          cb(Buffer.concat(body));
+        });
+      });
+    }
+
+
+    const getOutputFile = () => {
+      let i = 0
+      while (fs.existsSync(`${this.dlRoot}/${i}.pdf`)) {
+        i++;
+      }
+      return `${this.dlRoot}/${i}.pdf`
+    }
+
+    if (pathPart === "/vi") {
+      const params = qs.parse(req.url.replace("/vi?", ""))
+
+      // If no `?file` is given, open a fallback page
+      if (req.url == "/vi") {
+        fs.readFile("vipdf/index.html", (err, data) => {
+          if (err) {
+            res.writeHead(500);
+            res.end();
+          } else {
+            res.writeHead(200);
+            res.end(data, "utf8");
+          }
+        })
+        return;
+      }
+
+      if (!Object.keys(params).includes('file') || 
+          !params['file'].endsWith('.pdf')) {
+        res.writeHead(400);
+        res.end("Bad request", "utf8");
+        return;
+      }
+      const downloadUrl = params['file']
+
+      getFollow(downloadUrl, (data) => {
+        const outfile = getOutputFile()
+        console.log(
+          `fetched ${downloadUrl} -> ${outfile} (${data.length} bytes)`
+        )
+
+        if (data.length == 0 || !data.toString('utf8', 1, 4) != "PDF") {
+            res.writeHead(500);
+            console.error("error response", data.toString('utf8'))
+            res.end("Failed to fetch remote resource");
+        } else {
+          fs.writeFile(outfile, data, err => {
+            if (err) {
+              console.error(err);
+              res.writeHead(500);
+              res.end();
+            } else {
+              res.writeHead(302, { // XXX Assumes: `dlRoot == /tmp/.pdfs`
+                Location: "/web/viewer.html?file=" + outfile.replace("/tmp", "") 
+              });
+              res.end();
+            }
+          });
+        }
+      })
+
+      return;
+    }
+    //========================================================================//
 
     var disableRangeRequests = this.disableRangeRequests;
     var cacheExpirationTime = this.cacheExpirationTime;

@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>ViPDF</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" type="img/png" href="https://i.imgur.com/XZGB4nK.png">
+</head>
+
+<style>
+* {
+  font-family: Arial;
+  text-align: center;
+  color: #f5e4f3;
+}
+
+body, html {
+  background-color: #1a1c1f;
+}
+
+
+h1 {
+  font-size: 32px;
+  font-style: italic;
+}
+
+input {
+  background-color: #2f343f;
+  border: 0;
+  outline: 0;
+  border-radius: 5%;
+  padding: 20px;
+  font-size: 18px;
+}
+</style>
+
+<script>
+const OnSumbit = () => {
+  // Strip all request paramters
+  const url = new URL(document.querySelector('input').value)
+  window.location = 'http://localhost:9449/vi?file=' + 
+                    url.origin + url.pathname
+}
+
+</script>
+
+
+<body>
+  <h1>V i P D F </h1>
+  <form method="dialog" autocomplete="off" 
+         onsubmit="OnSumbit()"
+  >
+  <input spellcheck="false" autocapitalize="off" autocorrect="off" type="text"
+         placeholder="URL to pdf..."/>  
+  </form>
+</body>
+
+</html>
