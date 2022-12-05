@@ -10,8 +10,10 @@
 // @include      https://*/*
 // ==/UserScript==
 document.querySelectorAll("[href]").forEach(link => {
-  if (link.href.replace(/#|\?.*$/, "").endsWith(".pdf") || 
-      link.type === "application/pdf") {
+  if (
+    link.href.replace(/#|\?.*$/, "").endsWith(".pdf") ||
+    link.type === "application/pdf"
+  ) {
     const url = new URL(link.href);
     link.href = `http://localhost:9449/vi?file=${url.origin + url.pathname}`;
     link.setAttribute("style", "color: #de463e;");

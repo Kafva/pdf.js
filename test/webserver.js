@@ -17,9 +17,6 @@
 
 "use strict";
 
-
-const qs = require("node:querystring")
-const https = require("https");
 var http = require("http");
 var path = require("path");
 var fs = require("fs");
@@ -43,8 +40,7 @@ var mimeTypes = {
 var defaultMimeType = "application/octet-stream";
 
 function WebServer() {
-  this.root = ".";
-  this.dlRoot = "/tmp/.pdfs"
+  this.root = '.';
   this.host = "localhost";
   this.port = 0;
   this.server = null;
@@ -58,20 +54,6 @@ function WebServer() {
 }
 WebServer.prototype = {
   start(callback) {
-    // Create download folder: /tmp/.pdfs
-    fs.mkdir(this.dlRoot, (e) => {
-      if (e && e.code != "EEXIST") {
-        console.error(e);
-        process.exit(-1)
-      }
-    })
-    // Create a '.pdfs -> /tmp/.pdfs' symlink
-    fs.symlink(this.dlRoot, path.basename(this.dlRoot), (e) => {
-      if (e && e.code != "EEXIST") {
-        console.error(e) 
-        process.exit(-1)
-      }
-    })
     this._ensureNonZeroPort();
     this.server = http.createServer(this._handler.bind(this));
     this.server.listen(this.port, this.host, callback);
@@ -140,139 +122,10 @@ WebServer.prototype = {
       return;
     }
 
-    //===================== ViPDF ============================================//
-    // Make a GET request and follow redirects
-    const getFollow = (url, redirectCount, cb) => {
-      const fetcher = url.startsWith("https") ? https : http
-
-      fetcher.get(url, (res) => {
-        console.log(`${res.statusCode} Fetching data from ${url}`)
-
-        if (300 <= res.statusCode && res.statusCode < 400) {
-
-          if (redirectCount >= 5) {
-            cb("Too many redirects");
-          } else {
-            getFollow(res.headers.location, ++redirectCount, cb)
-          }
-        } else {
-          const body = [];
-
-          res.on("data", (chunk) => {
-            body.push(chunk);
-          }).on("end", () => {
-            cb(Buffer.concat(body));
-          });
-        }
-      });
-    }
-
-    const getOutputFile = () => {
-      let i = 0
-      while (fs.existsSync(`${this.dlRoot}/${i}.pdf`)) {
-        i++;
-      }
-      return `${this.dlRoot}/${i}.pdf`
-    }
-
     if (pathPart === "/vi") {
-      const params = qs.parse(req.url.replace("/vi?", ""))
-
-      // If no `?file` is given, open a fallback page
-      if (req.url == "/vi") {
-        fs.readFile("vipdf/index.html", (err, data) => {
-          if (err) {
-            res.writeHead(500);
-            res.end();
-          } else {
-            res.writeHead(200);
-            res.end(data, "utf8");
-          }
-        })
-        return;
-      }
-
-      if (!Object.keys(params).includes('file') || 
-          !params['file'].endsWith('.pdf')) {
-        res.writeHead(400);
-        res.end("Bad request", "utf8");
-        return;
-      }
-      const fileUrl = params['file']
-
-      if (fileUrl.startsWith("file:///") || fileUrl.startsWith("/")) {
-        // For local resources we create symlinks 
-        // (this allows for LaTeX documents that are rebuilt
-        // to be updated on page refresh without a new request to /vi)
-        const fsPath = fileUrl.replace(/^file:\/\//, "")
-        if (!fs.existsSync(fsPath)) {
-            res.writeHead(400);
-            res.end("Local resource does not exist: "+fsPath);
-        } else if (fs.lstatSync(fsPath).isSymbolicLink()) {
-            res.writeHead(400);
-            res.end("Local resource is a symlink: "+fsPath);
-        } else {
-          const linkPath = `${this.dlRoot}/${path.basename(fsPath)}`
-          try {
-            fs.unlinkSync(linkPath)
-          } catch (e) {
-            if (e.code != "ENOENT") {
-              console.error(e)
-              res.writeHead(500);
-              res.end();
-              return
-            }
-          }
-
-          // Create a '.pdfs/<name> -> file:///.../<name>' symlink
-          fs.symlink(fsPath, linkPath, (e) => {
-            if (e) {
-              console.error(e) 
-              process.exit(-1)
-            } else {
-              res.writeHead(302, {
-                Location: "/web/viewer.html?file=" + linkPath.replace("/tmp", "") 
-              });
-              res.end();
-            }
-          })
-        }
-      } else if (fileUrl.match(/^http?s\|ftp/) != null) {
-        // For remote resources, fetch the PDF to /tmp
-        getFollow(fileUrl, 0, (data) => {
-          const outfile = getOutputFile()
-          console.log(
-            `fetched ${fileUrl} -> ${outfile} (${data.length} bytes)`
-          )
-          if (data.length == 0 || data.toString('ascii', 0, 4) != "%PDF") {
-              res.writeHead(400);
-              const err = data.toString('utf8', 0, 256)
-              console.error("error response", err)
-              res.end("Non PDF response: "+fileUrl);
-          } else {
-            fs.writeFile(outfile, data, err => {
-              if (err) {
-                console.error(err);
-                res.writeHead(500);
-                res.end("Error saving local copy of document");
-              } else {
-                res.writeHead(302, { // XXX Assumes: `dlRoot == /tmp/.pdfs`
-                  Location: "/web/viewer.html?file=" + outfile.replace("/tmp", "") 
-                });
-                res.end();
-              }
-            });
-          }
-        })
-      } else {
-        res.writeHead(400);
-        res.end("Unsupported URI scheme");
-      }
-
-
+      require("../vipdf/lib.js").HandleViRequest(res, req.url);
       return;
     }
-    //========================================================================//
 
     var disableRangeRequests = this.disableRangeRequests;
     var cacheExpirationTime = this.cacheExpirationTime;

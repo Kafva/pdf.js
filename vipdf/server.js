@@ -12,6 +12,26 @@
 //  Scripting:
 //    http://localhost:9449/vi?file=https://github.com/mozilla/pdf.js/files/9622672/PDF.mit.Datum_edit.pdf
 
+const fs = require("fs");
+const path = require("path");
+const process = require("node:process");
+const DL_ROOT = require("./lib.js").DL_ROOT;
+
+// Create download folder: /tmp/.pdfs
+fs.mkdir(DL_ROOT, e => {
+  if (e && e.code !== "EEXIST") {
+    console.error(e);
+    process.exit(-1);
+  }
+});
+// Create a '.pdfs -> /tmp/.pdfs' symlink
+fs.symlink(DL_ROOT, path.basename(DL_ROOT), e => {
+  if (e && e.code !== "EEXIST") {
+    console.error(e);
+    process.exit(-1);
+  }
+});
+
 const WebServer = require("../test/webserver.js").WebServer;
 
 const server = new WebServer();
