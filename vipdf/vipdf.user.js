@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name         vipdf
+// @name         ViPDF
 // @version      0.1
 // @description  Use ViPDF for all PDF links.
 // @author       Kafva
 // @namespace    https://raw.githubusercontent.com/Kafva/
-// @downloadUrl  https://raw.githubusercontent.com/Kafva/vipdf/master/vipdf.user.js
-// @updateUrl    https://raw.githubusercontent.com/Kafva/vipdf/master/vipdf.user.js
+// @downloadUrl  https://raw.githubusercontent.com/Kafva/pdf.js/master/vipdf.user.js
+// @updateUrl    https://raw.githubusercontent.com/Kafva/pdf.js/master/vipdf.user.js
 // @icon         https://i.imgur.com/XZGB4nK.png
 // @include      https://*/*
 // ==/UserScript==

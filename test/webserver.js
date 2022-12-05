@@ -40,7 +40,7 @@ var mimeTypes = {
 var defaultMimeType = "application/octet-stream";
 
 function WebServer() {
-  this.root = '.';
+  this.root = ".";
   this.host = "localhost";
   this.port = 0;
   this.server = null;
@@ -122,6 +122,12 @@ WebServer.prototype = {
       return;
     }
 
+    if (pathPart.endsWith("/")) {
+      // Disable directory listings
+      res.writeHead(302, { Location: "/vi" });
+      res.end();
+      return;
+    }
     if (pathPart === "/vi") {
       require("../vipdf/lib.js").HandleViRequest(res, req.url);
       return;

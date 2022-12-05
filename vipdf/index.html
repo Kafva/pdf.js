@@ -35,10 +35,16 @@ input {
 
 <script>
 const OnSumbit = () => {
-  // Strip all request paramters
-  const url = new URL(document.querySelector('input').value)
-  window.location = 'http://localhost:9449/vi?file=' + 
-                    url.origin + url.pathname
+  const inputValue = document.querySelector('input').value
+
+  if (inputValue.startsWith("file:///") || inputValue.startsWith("/")) {
+    window.location = 'http://localhost:9449/vi?file=' + inputValue
+  } else {
+    // Strip all request paramters
+    const url = new URL(inputValue)
+    window.location = 'http://localhost:9449/vi?file=' +
+                      url.origin + url.pathname
+  }
 }
 
 </script>
@@ -46,11 +52,11 @@ const OnSumbit = () => {
 
 <body>
   <h1>V i P D F </h1>
-  <form method="dialog" autocomplete="off" 
+  <form method="dialog" autocomplete="off"
          onsubmit="OnSumbit()"
   >
   <input spellcheck="false" autocapitalize="off" autocorrect="off" type="text"
-         placeholder="URL to pdf..."/>  
+         placeholder="URL to pdf..."/>
   </form>
 </body>
 

@@ -6,6 +6,7 @@ const fs = require("fs");
 const process = require("node:process");
 
 const DL_ROOT = (exports.DL_ROOT = "/tmp/.pdfs");
+exports.PORT = 9449;
 
 exports.HandleViRequest = (res, url) => {
   const params = qs.parse(url.replace("/vi?", ""));
