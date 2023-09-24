@@ -68,6 +68,7 @@ import {
   NewAltTextManager,
 } from "web-new_alt_text_manager";
 import { LinkTarget, PDFLinkService } from "./pdf_link_service.js";
+import { KafvaHandleKeyDown, KafvaUpdateSpreads } from "./kafva.js";
 import { AltTextManager } from "web-alt_text_manager";
 import { AnnotationEditorParams } from "web-annotation_editor_params";
 import { CaretBrowsingMode } from "./caret_browsing.js";
@@ -1657,7 +1658,7 @@ const PDFViewerApplication = {
       `PDF ${pdfDocument.fingerprints[0]} [${info.PDFFormatVersion} ` +
         `${(metadata?.get("pdf:producer") || info.Producer || "-").trim()} / ` +
         `${(metadata?.get("xmp:creatortool") || info.Creator || "-").trim()}` +
-        `] (PDF.js: ${version || "?"} [${build || "?"}])`
+        `] (PDF.js: ${version || "?"} [${build || "?"}]-kafva)`
     );
     const pdfTitle = this._docTitle;
 
@@ -2390,6 +2391,12 @@ function onPageRendered({ pageNumber, isDetailView, error }) {
   if (error) {
     this._otherError("pdfjs-rendering-error", error);
   }
+
+  // Instead of waiting for a resize, attempt to update the spread
+  // setting once the second page has been loaded
+  if (pageNumber === 2) {
+    KafvaUpdateSpreads();
+  }
 }
 
 function onPageMode({ mode }) {
@@ -2505,6 +2512,7 @@ function onResize() {
     pdfViewer.currentScaleValue = currentScaleValue;
   }
   pdfViewer.update();
+  KafvaUpdateSpreads();
 }
 
 function onHashchange(evt) {
@@ -2919,6 +2927,11 @@ function onKeyDown(evt) {
     if (evt.keyCode !== /* Esc = */ 27) {
       return;
     }
+  }
+
+  if (KafvaHandleKeyDown(cmd, evt)) {
+    evt.preventDefault();
+    return; // done
   }
 
   // No control key pressed at all.
