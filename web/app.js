@@ -66,6 +66,7 @@ import {
   NewAltTextManager,
 } from "web-new_alt_text_manager";
 import { LinkTarget, PDFLinkService } from "./pdf_link_service.js";
+import { KafvaHandleKeyDown, KafvaUpdateSpreads } from "./kafva.js";
 import { AltTextManager } from "web-alt_text_manager";
 import { AnnotationEditorParams } from "web-annotation_editor_params";
 import { CaretBrowsingMode } from "./caret_browsing.js";
@@ -1577,7 +1578,7 @@ const PDFViewerApplication = {
     console.log(
       `PDF ${pdfDocument.fingerprints[0]} [${info.PDFFormatVersion} ` +
         `${(info.Producer || "-").trim()} / ${(info.Creator || "-").trim()}] ` +
-        `(PDF.js: ${version || "?"} [${build || "?"}])`
+        `(PDF.js: ${version || "?"} [${build || "?"}-kafva])`
     );
     let pdfTitle = info.Title;
 
@@ -2267,6 +2268,12 @@ if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
         // Hosted or local viewer, allow for any file locations
         return;
       }
+      // In the generic build for firefox the origin is 'null' and the
+      // viewerOrigin is the extension ID: moz-extension://d4fb6fb9-33b5-41b8-a7c2-bc96fda819a9
+      // which does not work with the next check
+      if (viewerOrigin.match(/moz-extension:\/\//) !== null) {
+        return;
+      }
       const fileOrigin = new URL(file, window.location.href).origin;
       // Removing of the following line will not guarantee that the viewer will
       // start accepting URLs from foreign origin -- CORS headers on the remote
@@ -2329,6 +2336,12 @@ function onPageRendered({ pageNumber, error }) {
 
   if (error) {
     this._otherError("pdfjs-rendering-error", error);
+  }
+
+  // Instead of waiting for a resize, attempt to update the spread
+  // setting once the second page has been loaded
+  if (pageNumber === 2) {
+    KafvaUpdateSpreads();
   }
 }
 
@@ -2445,6 +2458,7 @@ function onResize() {
     pdfViewer.currentScaleValue = currentScaleValue;
   }
   pdfViewer.update();
+  KafvaUpdateSpreads();
 }
 
 function onHashchange(evt) {
@@ -2859,6 +2873,11 @@ function onKeyDown(evt) {
     if (evt.keyCode !== /* Esc = */ 27) {
       return;
     }
+  }
+
+  if (KafvaHandleKeyDown(cmd, evt)) {
+    evt.preventDefault();
+    return; // done
   }
 
   // No control key pressed at all.
