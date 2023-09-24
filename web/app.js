@@ -21,6 +21,7 @@ import {
   CursorTool,
   DEFAULT_SCALE_VALUE,
   getActiveOrFocusedElement,
+  getPageSizeInches,
   isValidRotation,
   isValidScrollMode,
   isValidSpreadMode,
@@ -1504,7 +1505,7 @@ const PDFViewerApplication = {
     console.log(
       `PDF ${pdfDocument.fingerprints[0]} [${info.PDFFormatVersion} ` +
         `${(info.Producer || "-").trim()} / ${(info.Creator || "-").trim()}] ` +
-        `(PDF.js: ${version || "?"} [${build || "?"}])`
+        `(PDF.js: ${version || "?"} [${build || "?"}-kafva])`
     );
     let pdfTitle = info.Title;
 
@@ -2204,6 +2205,12 @@ if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
         // Hosted or local viewer, allow for any file locations
         return;
       }
+      // In the generic build for firefox the origin is 'null' and the
+      // viewerOrigin is the extension ID: moz-extension://d4fb6fb9-33b5-41b8-a7c2-bc96fda819a9
+      // which does not work with the next check
+      if (viewerOrigin.match(/moz-extension:\/\//) !== null) {
+        return;
+      }
       const fileOrigin = new URL(file, window.location.href).origin;
       // Removing of the following line will not guarantee that the viewer will
       // start accepting URLs from foreign origin -- CORS headers on the remote
@@ -2279,6 +2286,12 @@ function webViewerPageRendered({ pageNumber, error }) {
 
   if (error) {
     PDFViewerApplication._otherError("pdfjs-rendering-error", error);
+  }
+
+  // Instead of waiting for a resize, attempt to update the spread
+  // setting once the second page has been loaded
+  if (pageNumber === 2) {
+    updateSpreads();
   }
 }
 
@@ -2396,6 +2409,33 @@ function webViewerSpreadModeChanged(evt) {
     });
   }
 }
+/**
+ * Automatically use a 2-page spread if the viewport has a width above X
+ * and is not a presentation. We consider any
+ * document with a (width/height) quotient close to or below 1
+ * (i.e. a lying rectange form) a presentation
+ */
+function updateSpreads() {
+  const widthLimitPx = 1700;
+  const { pdfDocument, pdfViewer } = PDFViewerApplication;
+  pdfDocument.getPage(1).then(pdfPage => {
+    const pageSize = getPageSizeInches(pdfPage, 0);
+    if (
+      pageSize.width / pageSize.height <= 1 &&
+      (window.innerWidth > widthLimitPx ||
+        document.documentElement.clientWidth > widthLimitPx)
+    ) {
+      if (pdfViewer._spreadMode !== SpreadMode.ODD) {
+        console.log("[!]: Switching to 2-spread mode");
+        pdfViewer.spreadMode = SpreadMode.ODD;
+      }
+    } else if (pdfViewer._spreadMode !== SpreadMode.NONE) {
+      console.log("[!]: Switching to single-spread mode");
+      pdfViewer.spreadMode = SpreadMode.NONE;
+    }
+    pdfViewer.update();
+  });
+}
 
 function webViewerResize() {
   const { pdfDocument, pdfViewer, pdfRenderingQueue } = PDFViewerApplication;
@@ -2418,6 +2458,7 @@ function webViewerResize() {
     pdfViewer.currentScaleValue = currentScaleValue;
   }
   pdfViewer.update();
+  updateSpreads();
 }
 
 function webViewerHashchange(evt) {
