@@ -441,7 +441,7 @@ class PDFViewer {
    * @type {boolean}
    */
   get enableScripting() {
-    return !!this._scriptingManager;
+    return false; // XXX !!this._scriptingManager;
   }
 
   /**
