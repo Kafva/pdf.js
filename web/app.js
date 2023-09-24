@@ -3165,11 +3165,48 @@ function webViewerKeyDown(evt) {
     }
   }
 
+  // Smooth scrolling does not work properly with the current method
+  const SCROLL_BEHAVIOUR = "auto";
+  const SCROLL_STEP = 100;
+  const viewerContainer = document.querySelector("#viewerContainer");
+
+  let turnPage = 0,
+    turnOnlyIfPageFit = false;
+
   // No control key pressed at all.
   if (cmd === 0) {
-    let turnPage = 0,
-      turnOnlyIfPageFit = false;
     switch (evt.keyCode) {
+      case 80: // 'p'
+        window.history.back();
+        break;
+      case 72: // 'h'
+        viewerContainer.scrollBy({
+          left: -SCROLL_STEP,
+          top: 0,
+          behavior: SCROLL_BEHAVIOUR,
+        });
+        break;
+      case 74: // 'j'
+        viewerContainer.scrollBy({
+          left: 0,
+          top: SCROLL_STEP,
+          behavior: SCROLL_BEHAVIOUR,
+        });
+        break;
+      case 75: // 'k'
+        viewerContainer.scrollBy({
+          left: 0,
+          top: -SCROLL_STEP,
+          behavior: SCROLL_BEHAVIOUR,
+        });
+        break;
+      case 76: // 'l'
+        viewerContainer.scrollBy({
+          left: SCROLL_STEP,
+          top: 0,
+          behavior: SCROLL_BEHAVIOUR,
+        });
+        break;
       case 38: // up arrow
       case 33: // pg up
         // vertical scrolling using arrow/pg keys
@@ -3177,6 +3214,9 @@ function webViewerKeyDown(evt) {
           turnOnlyIfPageFit = true;
         }
         turnPage = -1;
+        break;
+      case 71: // 'g'
+        webViewerFirstPage();
         break;
       case 8: // backspace
         if (!isViewerInPresentationMode) {
@@ -3190,8 +3230,7 @@ function webViewerKeyDown(evt) {
           turnOnlyIfPageFit = true;
         }
       /* falls through */
-      case 75: // 'k'
-      case 80: // 'p'
+      case 85: // 'u'
         turnPage = -1;
         break;
       case 27: // esc key
@@ -3228,7 +3267,7 @@ function webViewerKeyDown(evt) {
           turnOnlyIfPageFit = true;
         }
       /* falls through */
-      case 74: // 'j'
+      case 68: // 'd'
       case 78: // 'n'
         turnPage = 1;
         break;
@@ -3254,29 +3293,10 @@ function webViewerKeyDown(evt) {
       case 83: // 's'
         PDFViewerApplication.pdfCursorTools?.switchTool(CursorTool.SELECT);
         break;
-      case 72: // 'h'
-        PDFViewerApplication.pdfCursorTools?.switchTool(CursorTool.HAND);
-        break;
-
-      case 82: // 'r'
-        PDFViewerApplication.rotatePages(90);
-        break;
 
       case 115: // F4
         PDFViewerApplication.pdfSidebar?.toggle();
         break;
-    }
-
-    if (
-      turnPage !== 0 &&
-      (!turnOnlyIfPageFit || pdfViewer.currentScaleValue === "page-fit")
-    ) {
-      if (turnPage > 0) {
-        pdfViewer.nextPage();
-      } else {
-        pdfViewer.previousPage();
-      }
-      handled = true;
     }
   }
 
@@ -3295,11 +3315,34 @@ function webViewerKeyDown(evt) {
 
         handled = true;
         break;
-
-      case 82: // 'r'
-        PDFViewerApplication.rotatePages(-90);
+      case 74: // j
+        turnPage = 1;
+        break;
+      case 75: // k
+        turnPage = -1;
+        break;
+      case 71: // 'G'
+        webViewerLastPage();
+        break;
+      case 55: // 7 ('/' with shift)
+        if (!PDFViewerApplication.supportsIntegratedFind) {
+          PDFViewerApplication.findBar.open();
+          handled = true;
+        }
         break;
     }
+  }
+
+  if (
+    turnPage !== 0 &&
+    (!turnOnlyIfPageFit || pdfViewer.currentScaleValue === "page-fit")
+  ) {
+    if (turnPage > 0) {
+      pdfViewer.nextPage();
+    } else {
+      pdfViewer.previousPage();
+    }
+    handled = true;
   }
 
   if (!handled && !isViewerInPresentationMode) {
