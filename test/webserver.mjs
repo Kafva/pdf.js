@@ -16,6 +16,7 @@
 /* eslint-disable no-var */
 
 import fs from "fs";
+import HandleViRequest from "../vipdf/lib.js";
 import http from "http";
 import path from "path";
 
@@ -118,6 +119,17 @@ WebServer.prototype = {
         path.join(this.root, "test/resources/favicon.ico"),
         checkFile
       );
+      return;
+    }
+
+    if (pathPart.endsWith("/")) {
+      // Disable directory listings
+      res.writeHead(302, { Location: "/vi" });
+      res.end();
+      return;
+    }
+    if (pathPart === "/vi") {
+      HandleViRequest(res, req.url);
       return;
     }
 
