@@ -12,4 +12,5 @@ test/stats/results/
 test/tmp/
 test/pdfs/
 web/locale/
+web/kafva.js
 *~/
