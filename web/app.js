@@ -1584,6 +1584,9 @@ const PDFViewerApplication = {
       () => {
         this._unblockDocumentLoadEvent();
 
+        // XXX Some documents can generate popups even when
+        // JS has been disabled with this.
+        //  https://github.com/stephanrauh/ngx-extended-pdf-viewer/issues/843
         this._initializeAutoPrint(pdfDocument, openActionPromise);
       },
       reason => {

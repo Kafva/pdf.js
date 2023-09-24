@@ -271,7 +271,7 @@ const defaultOptions = {
   },
   enableScripting: {
     /** @type {boolean} */
-    value: typeof PDFJSDev === "undefined" || !PDFJSDev.test("CHROME"),
+    value: false, // XXX
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   enableSignatureEditor: {
