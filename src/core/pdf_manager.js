@@ -147,6 +147,7 @@ class BasePdfManager {
 class LocalPdfManager extends BasePdfManager {
   constructor(args) {
     super(args);
+    this._kafvaDocBaseUrl = args.docBaseUrl;
 
     const stream = new Stream(args.source);
     this.pdfDocument = new PDFDocument(this, stream);
@@ -175,6 +176,7 @@ class LocalPdfManager extends BasePdfManager {
 class NetworkPdfManager extends BasePdfManager {
   constructor(args) {
     super(args);
+    this._kafvaDocBaseUrl = this._docBaseUrl;
 
     this.streamManager = new ChunkedStreamManager(args.source, {
       msgHandler: args.handler,
