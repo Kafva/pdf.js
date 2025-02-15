@@ -1557,10 +1557,12 @@ class PDFDocument {
       );
     }
 
-    return shadow(this, "fingerprints", [
-      toHexUtil(hashOriginal),
-      hashModified ? toHexUtil(hashModified) : null,
-    ]);
+    // Scroll location etc. is kept for documents with the same fingerprint.
+    // Use the filepath instead of the file content to avoid a reset location
+    // when reloading recompiled PDFs during development.
+    const url = stringToBytes(this.pdfManager._kafvaDocBaseUrl);
+    const kafvaHash = calculateMD5(url, 0, url.length);
+    return shadow(this, "fingerprints", [toHexUtil(kafvaHash), null]);
   }
 
   async _getLinearizationPage(pageIndex) {

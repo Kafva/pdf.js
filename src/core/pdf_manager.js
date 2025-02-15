@@ -156,6 +156,9 @@ class BasePdfManager {
 class LocalPdfManager extends BasePdfManager {
   constructor(args) {
     super(args);
+    // Make sure that the URL to the document is available when running
+    // the PDFDocument() constructor, needed for fingerprint.
+    this._kafvaDocBaseUrl = args.docBaseUrl;
 
     const stream = new Stream(args.source);
     this.pdfDocument = new PDFDocument(this, stream);
